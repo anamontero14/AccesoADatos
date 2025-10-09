@@ -33,72 +33,55 @@ BEGIN
 	--el cursor iterará sobre los 4 libros más prestados empezando por el que se ha prestado más y acabando por el que se ha prestado menos de los 4
 	DECLARE cursorLibros CURSOR FOR
 	--coge el nombre, el numero del libro y el genero de la tabla de libro
-	SELECT L.Nombre, L.RefLibro, L.genero FROM prestamos AS P 
-	INNER JOIN libros AS L ON L.RefLibro = P.RefLibro_Libros INNER JOIN socios AS S ON S.DNI = P.DNI_Socios
+	SELECT TOP 4 L.Nombre, L.RefLibro, L.genero FROM prestamos AS P 
+	INNER JOIN libros AS L ON L.RefLibro = P.RefLibro_Libros
 	GROUP BY L.RefLibro, L.Nombre, L.genero
 	ORDER BY COUNT(P.RefLibro_Libros) DESC
 
 	--se abre el cursor
 	OPEN cursorLibros
 	FETCH NEXT FROM cursorLibros INTO @nombreLibro, @numLibro, @generoLibro
+	--se imprime el nombre de las categorías a mostrar
+	PRINT 'Nombre del libro		' + 'Número del libro prestado		' + 'Género del libro'
 
-	IF (@nombreLibro IS NULL AND @numLibro IS NULL AND @generoLibro IS NULL)
-		BEGIN
-			PRINT 'La tabla de los libros está vacía'
-		END
-	ELSE
-		BEGIN
-			--se declara un nuevo cursor que iterará sobre los socios que han tomado prestado el libro
-			DECLARE cursorSocios CURSOR FOR
-			SELECT S.DNI, P.FechaPrestamo FROM socios AS S INNER JOIN prestamos AS P ON P.DNI_Socios = S.DNI
+	WHILE (@@FETCH_STATUS = 0)
+	BEGIN
 
-			--se abre el cursor del socio
-			OPEN cursorSocios
+	--se declara un nuevo cursor que iterará sobre los socios que han tomado prestado el libro
+	DECLARE cursorSocios CURSOR FOR
+	SELECT DNI_Socios, FechaPrestamo FROM prestamos WHERE RefLibro_Libros = @numLibro
+
+	--se abre el cursor del socio
+	OPEN cursorSocios
+	FETCH NEXT FROM cursorSocios INTO @dni, @fechaPrestamoSocio
+
+	--muestro los datos que se han pedido
+	PRINT CAST(@nombreLibro AS varchar(20)) + '					' + CAST(@numLibro AS varchar(20)) + '						' + CAST(@generoLibro AS varchar(20))
+	
+	--indico las siguientes categorías a mostrar
+	PRINT 'DNI del socio			  ' + 'Fecha de préstamo'
+
+		WHILE (@@FETCH_STATUS = 0)
+		BEGIN
+			
+			--muestro los datos
+			PRINT CAST(@dni AS varchar(20)) + '						' + CAST(@fechaPrestamoSocio AS varchar(20))
+			
+			--paso al siguiente socio
 			FETCH NEXT FROM cursorSocios INTO @dni, @fechaPrestamoSocio
-	
-			IF (@dni IS NULL AND @fechaPrestamoSocio IS NULL)
-				BEGIN
-					PRINT 'La tabla de socios está vacía'
-				END
-			ELSE
-				BEGIN
-					--se imprime el nombre de las categorías a mostrar
-					PRINT 'Nombre del libro		' + 'Número del libro prestado		' + 'Género del libro'
 
-					WHILE (@@FETCH_STATUS = 0)
-					BEGIN
-
-					--muestro los datos que se han pedido
-					PRINT CAST(@nombreLibro AS varchar(20)) + '					' + CAST(@numLibro AS varchar(20)) + '						' + CAST(@generoLibro AS varchar(20))
-	
-					--indico las siguientes categorías a mostrar
-					PRINT 'DNI del socio			  ' + 'Fecha de préstamo'
-
-						WHILE (@@FETCH_STATUS = 0)
-						BEGIN
-			
-							--muestro los datos
-							PRINT CAST(@dni AS varchar(20)) + '						' + CAST(@fechaPrestamoSocio AS varchar(20))
-			
-							--paso al siguiente socio
-							FETCH NEXT FROM cursorSocios INTO @dni, @fechaPrestamoSocio
-
-						END
-						--paso al siguiente libro
-						FETCH NEXT FROM cursorLibros INTO @nombreLibro, @numLibro, @generoLibro
-
-					END
-
-					--cierro el cursor de los socios
-					CLOSE cursorSocios
-					DEALLOCATE cursorSocios
-
-					--cierro el cursor de los libros
-					CLOSE cursorLibros
-					DEALLOCATE cursorLibros
-				END
 		END
+		--paso al siguiente libro
+		FETCH NEXT FROM cursorLibros INTO @nombreLibro, @numLibro, @generoLibro
 
+		--cierro el cursor de los socios
+		CLOSE cursorSocios
+		DEALLOCATE cursorSocios
+	END
+
+	--cierro el cursor de los libros
+	CLOSE cursorLibros
+	DEALLOCATE cursorLibros
 END
 
 EXEC listadocuatromasprestados
@@ -357,7 +340,7 @@ SELECT * FROM NOTAS
 /*
 A partir de las tablas creadas con el siguiente script:
 
--- Crear base de datos
+-- Crear la base de datos
 CREATE DATABASE Tienda;
 GO
 
@@ -365,25 +348,26 @@ GO
 USE Tienda;
 GO
 
--- Crear tabla productos
+-- Crear tabla de productos
 CREATE TABLE productos
 (
-    CodProducto    VARCHAR(10) NOT NULL PRIMARY KEY,
-    Nombre         VARCHAR(20) NOT NULL,
-    LineaProducto  VARCHAR(10),
-    PrecioUnitario INT,
-    Stock          INT
+    CodProducto     VARCHAR(10) NOT NULL PRIMARY KEY,
+    Nombre          VARCHAR(50) NOT NULL,
+    LineaProducto   VARCHAR(20),
+    PrecioUnitario  INT,
+    Stock           INT
 );
 GO
 
--- Crear tabla ventas
+-- Crear tabla de ventas
 CREATE TABLE ventas
 (
-    CodVenta        VARCHAR(10) NOT NULL PRIMARY KEY,
-    CodProducto     VARCHAR(10) NOT NULL,
-    FechaVenta      DATE,
+    CodVenta         VARCHAR(10) NOT NULL PRIMARY KEY,
+    CodProducto      VARCHAR(10) NOT NULL,
+    FechaVenta       DATE,
     UnidadesVendidas INT,
-    CONSTRAINT FK_Ventas_Productos FOREIGN KEY (CodProducto) REFERENCES productos(CodProducto)
+    CONSTRAINT FK_Ventas_Productos 
+        FOREIGN KEY (CodProducto) REFERENCES productos(CodProducto)
 );
 GO
 
@@ -400,7 +384,7 @@ INSERT INTO productos (CodProducto, Nombre, LineaProducto, PrecioUnitario, Stock
 ('9','DIMM SDRAM 32Mb', 'Memo',17000,12);
 GO
 
--- Insertar ventas (fechas en formato YYYY-MM-DD)
+-- Insertar ventas
 INSERT INTO ventas (CodVenta, CodProducto, FechaVenta, UnidadesVendidas) VALUES
 ('V1', '2', '1997-09-22',2),
 ('V2', '4', '1997-09-22',1),
@@ -423,6 +407,9 @@ INSERT INTO ventas (CodVenta, CodProducto, FechaVenta, UnidadesVendidas) VALUES
 ('V19','2', '1997-11-04',3),
 ('V20','9', '1997-12-04',3);
 GO
+
+DROP DATABASE Tienda
+
 */
 /*
 a) Realiza un procedimiento que actualice la columna 
@@ -436,7 +423,65 @@ a.1) Suponemos que se han realizado una serie de Ventas (todos
 los registros añadidos en la tabla Ventas), así debemos realizar 
 un procedimiento para actualizar la tabla Productos con las ventas 
 realizadas que están en la tabla Ventas.
+*/
 
+GO
+USE Tienda
+GO
+
+SELECT * FROM productos
+SELECT * FROM ventas
+
+CREATE OR ALTER PROCEDURE ActualizarStock
+AS
+BEGIN
+
+	--variable para almacenar el codigo del producto
+	DECLARE @codigoProducto int
+	--unidades vendidas
+	DECLARE @unidadesVendidas int
+	--stock actual
+	DECLARE @stock int
+	--variable para almacenar el numero de productos que hay que eliminar del stock
+	DECLARE @stockActualizado int = 0
+
+	--crear un cursor
+	DECLARE cursorProductos CURSOR FOR
+	SELECT P.CodProducto ,V.UnidadesVendidas, P.Stock FROM productos AS P
+	INNER JOIN ventas AS V ON V.CodProducto = P.CodProducto
+	--abro el cursor
+	OPEN cursorProductos
+	FETCH NEXT FROM cursorProductos INTO @codigoProducto, @unidadesVendidas, @stock
+
+	WHILE (@@FETCH_STATUS = 0)
+	BEGIN
+
+		--actualizo el stock y lo guardo en la variable
+		SET @stockActualizado = @stock - @unidadesVendidas
+
+		--printeo para comprobar
+		PRINT 'Stock actual: ' + CAST(@stock AS varchar(20))
+		PRINT 'Stock actualizado: ' + CAST(@stockActualizado AS varchar(20)) + '	' + CAST(@stock AS varchar(20)) + ' - ' + CAST(@unidadesVendidas AS varchar(20))
+
+		--actualizo la tabla en si
+		UPDATE productos SET Stock = @stockActualizado WHERE @codigoProducto = CodProducto
+
+		--siguiente producrto
+		FETCH NEXT FROM cursorProductos INTO @codigoProducto, @unidadesVendidas, @stock
+
+		--vuelvo a ponerlo a 0
+		SET @stockActualizado = 0
+
+	END
+
+	CLOSE cursorProductos
+	DEALLOCATE cursorProductos
+
+END
+
+EXEC ActualizarStock
+
+/*
 a.2) Mediante Triggers: Tenemos la tabla Ventas y Productos, debemos 
 actualizar la tabla Productos con las modificaciones o inserciones que 
 se hagan en la tabla Ventas de la siguiente forma:
@@ -448,8 +493,21 @@ venta, el código del producto y las unidades devueltas), se
 deberá actualizar el Stock de la tabla Productos. Hay que tener 
 en cuenta que si se devuelven todas las unidades que habían sido 
 vendidas, se deberá borrar esa venta de la tabla Ventas.
+*/
 
-b) Realiza un procedimiento que presente por pantalla un listado de las ventas con el siguiente formato:
+CREATE TRIGGER TR_ACTUALIZAR_STOCK_PRODUCTOS
+ON dbo.Ventas
+AFTER UPDATE
+AS
+BEGIN
+    IF UPDATE (unidadesVendidas)
+    BEGIN
+        PRINT 'Se actualizó la tabla ventas'
+    END
+END
+
+
+/*b) Realiza un procedimiento que presente por pantalla un listado de las ventas con el siguiente formato:
 
 Linea Producto: NombreLinea1
 	
@@ -473,4 +531,3 @@ Importe total NombreLinea2: ImporteLinea2
 .
 Total Ventas: Importedetodaslaslineas
 */
-
