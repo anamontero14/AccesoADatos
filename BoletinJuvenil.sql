@@ -498,24 +498,36 @@ vendidas, se deberá borrar esa venta de la tabla Ventas.
 
 select * from ventas
 
-CREATE OR ALTER TRIGGER Prueba
-    ON Ventas
-    FOR UPDATE
-    AS
+CREATE OR ALTER TRIGGER trg_ActualizarStockVentas
+ON Ventas
+AFTER UPDATE
+AS
+BEGIN
+    -- Solo si se cambió UnidadesVendidas
+    IF UPDATE(UnidadesVendidas)
     BEGIN
-    SET NOCOUNT ON
-
-	IF UPDATE(UnidadesVendidas)
-	BEGIN
-
-		UPDATE p
+        -- Aumento de unidades vendidas (nuevo > antiguo)
+        UPDATE p
         SET p.Stock = p.Stock - (i.UnidadesVendidas - d.UnidadesVendidas)
         FROM Productos p
         INNER JOIN inserted i ON p.CodProducto = i.CodProducto
         INNER JOIN deleted d ON d.CodProducto = i.CodProducto
+        WHERE i.UnidadesVendidas > d.UnidadesVendidas;
 
-	END
+        -- Devolución de unidades (nuevo < antiguo)
+        UPDATE p
+        SET p.Stock = p.Stock + (d.UnidadesVendidas - i.UnidadesVendidas)
+        FROM Productos p
+        INNER JOIN inserted i ON p.CodProducto = i.CodProducto
+        INNER JOIN deleted d ON d.CodProducto = i.CodProducto
+        WHERE i.UnidadesVendidas < d.UnidadesVendidas;
 
+        -- Borrar ventas si se devuelven todas las unidades
+        DELETE v
+        FROM Ventas v
+        INNER JOIN inserted i ON v.CodVenta = i.CodVenta
+        WHERE i.UnidadesVendidas = 0;
+    END
 END
 
 
