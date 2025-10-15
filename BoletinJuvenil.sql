@@ -495,15 +495,27 @@ en cuenta que si se devuelven todas las unidades que habían sido
 vendidas, se deberá borrar esa venta de la tabla Ventas.
 */
 
-CREATE TRIGGER TR_ACTUALIZAR_STOCK_PRODUCTOS
-ON dbo.Ventas
-AFTER UPDATE
-AS
-BEGIN
-    IF UPDATE (unidadesVendidas)
+
+select * from ventas
+
+CREATE OR ALTER TRIGGER Prueba
+    ON Ventas
+    FOR UPDATE
+    AS
     BEGIN
-        PRINT 'Se actualizó la tabla ventas'
-    END
+    SET NOCOUNT ON
+
+	IF UPDATE(UnidadesVendidas)
+	BEGIN
+
+		UPDATE p
+        SET p.Stock = p.Stock - (i.UnidadesVendidas - d.UnidadesVendidas)
+        FROM Productos p
+        INNER JOIN inserted i ON p.CodProducto = i.CodProducto
+        INNER JOIN deleted d ON d.CodProducto = i.CodProducto
+
+	END
+
 END
 
 
@@ -531,3 +543,62 @@ Importe total NombreLinea2: ImporteLinea2
 .
 Total Ventas: Importedetodaslaslineas
 */
+
+SELECT * FROM ventas
+SELECT * FROM productos
+
+CREATE OR ALTER PROCEDURE listadoVentas
+AS
+BEGIN
+
+	--variable que almacene la linea del producto
+	DECLARE @lineaProducto varchar(20)
+	--nombre del producto actual
+	DECLARE @nombreProducto varchar(20)
+	--unidades totales que se han vendido del producto actual
+	DECLARE @unidadesTotales int
+	--importe total del producto actual
+	DECLARE @importeTotalProducto int
+	--importe en total de todas las lineas
+	DECLARE @importeTotalLineas int = 0
+
+	--declaro el cursor que iterará en la tabla de ventas
+	DECLARE cursorVentas CURSOR FOR
+	/*seleccionará la línea de producto, su nombre, el número de unidades
+	vendidas por producto y el importe de dichas unidades vendidas que será el precio
+	por unidad de cada producto multiplicado por el numero total de unidades vendidas*/
+	SELECT P.LineaProducto, P.Nombre, SUM(V.UnidadesVendidas) AS 'Nº unidades vendidas', (P.PrecioUnitario * SUM(V.UnidadesVendidas)) AS 'Importe total' FROM ventas AS V
+	INNER JOIN productos AS P ON P.CodProducto = V.CodProducto
+	GROUP BY P.LineaProducto, P.Nombre, P.PrecioUnitario
+
+	--abro el cursor
+	OPEN cursorVentas
+	--hago la primera iteración
+	FETCH cursorVentas INTO @lineaProducto, @nombreProducto, @unidadesTotales, @importeTotalProducto
+
+	--empiezo a recorrer toda la tabla con el while
+	WHILE (@@FETCH_STATUS = 0)
+	BEGIN
+		
+		PRINT 'Línea producto: ' + @lineaProducto
+		--casteo las variables que contienen numeros porque pueden llegar a dar errores
+		PRINT 'Nombre del producto			Unidades totales			Importe total'
+		PRINT @nombreProducto + '						' + CAST(@unidadesTotales AS varchar(20)) + '						' + CAST(@importeTotalProducto AS varchar(20))
+
+		--voy sumandole a la variable el importe total por producto para calcular el importe total de todos los productos vendidos
+		SET @importeTotalLineas += @importeTotalProducto
+
+		--salto al siguiente producto
+		FETCH cursorVentas INTO @lineaProducto, @nombreProducto, @unidadesTotales, @importeTotalProducto
+
+	END
+
+	PRINT 'Total ventas: ' + CAST(@importeTotalLineas AS varchar(20))
+
+	--cierro el cursor
+	CLOSE cursorVentas
+	DEALLOCATE cursorVentas
+
+END
+
+EXEC listadoVentas
