@@ -1,0 +1,20 @@
+/***************************************************
+				CURSORES
+****************************************************/
+
+
+
+
+/************************************************************
+			RESUMEN (RECETA DE COCINA)
+			PASOS EN ORDEN
+*************************************************************/
+/*  1º) DECLARAR VARIABLES A USAR
+	2º) DECLARAR EL CURSOR
+	3º) ABRIR EL CURSOR
+	4º) LEER EL 1er REGISTRO USANDO LAS VBLES CREADAS PARA VOLCAR EL CONTENIDO
+	5º) CREAR UN BUCLE PARA LEER TODOS LOS REGISTROS. ESTE BUCLE PREGUNTA SI CADA 
+	FETCH FUÉ EXITOSO (FETCH_STATUS = 0).
+	DENTRO DEL BUCLE, INDICAR LA LÓGICA (USAR VBLES, REALIZAR CÁLCULOS...)
+	6º) LEER EL SIGUIENTE REGISTRO (Y EL BUCLE PREGUNTARÁ SI CUANDO INTENTÉ LEER FUE EXITOSO)
+	7º) CERRAR EL CURSOR Y BORRARLO DE LA MEMORIA

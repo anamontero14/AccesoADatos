@@ -531,6 +531,7 @@ BEGIN
 END
 
 
+
 /*b) Realiza un procedimiento que presente por pantalla un listado de las ventas con el siguiente formato:
 
 Linea Producto: NombreLinea1
