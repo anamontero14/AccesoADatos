@@ -98,7 +98,6 @@ public class Ejercicio5 {
 			// si la longitud del fichero es igual a 0 significa que el fichero está vacío
 			if (longitudFichero == 0) {
 				System.out.println("Fichero vacío");
-				return;
 			}
 
 			// se abre el fichero para escribir
