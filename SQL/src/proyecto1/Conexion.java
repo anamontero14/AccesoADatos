@@ -11,7 +11,7 @@ public class Conexion {
 		// url de la bbdd
 		String url = "jdbc:mysql://dns11036.phdns11.es:3306/ad2526_ana_montero";
 		// usuario de la bbdd
-		String usuario = "ana_montero";
+		String usuario = "ad2526_ana_montero";
 		// contraseña del usuario
 		String clave = "12345";
 
@@ -20,4 +20,6 @@ public class Conexion {
 		// se devuelve dicha conexion
 		return conexion;
 	}
+	
+	
 }
