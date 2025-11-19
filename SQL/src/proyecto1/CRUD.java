@@ -3,6 +3,7 @@ package proyecto1;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -127,6 +128,297 @@ public class CRUD extends Exception {
 	}
 
 	/**
+	 * Método que sirve para comprobar si la operación que se ha realizado ha sido
+	 * exitosa o no
+	 * 
+	 * @param nombreTablaInsertar - El nombre de la tabla en donde se van a insertar
+	 *                            los datos
+	 * @param valores             - Un array con los valores que valdrán los camposs
+	 * @return True si se ha podido ejecutar la sentencia y False si no se pudo
+	 *         ejecutar
+	 */
+	public static boolean insert(String nombreTabla, String valores[]) {
+		// variable que gestionará si las tablas se crearon o no correctamente
+		boolean exito = false;
+
+		Connection conexion = null;
+		Statement stmt = null;
+		// variable que almacenará la sentencia sql
+		String sentenciaSQL = "";
+
+		// si en primer momento existe la tabla en la que se planea insertar
+		if (existenciaTabla(nombreTabla)) {
+			try {
+				conexion = Conexion.obtenerConexion();
+				stmt = conexion.createStatement();
+
+				// se ejecutan todas las sentencias sql
+				sentenciaSQL = insertarValores(nombreTabla, valores);
+				stmt.execute(sentenciaSQL);
+
+				exito = true;
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return exito;
+	}
+
+	/**
+	 * Método que te permite mostrar datos de una tabla
+	 * 
+	 * @param nombreTabla - El nombre de la tabla de la que mostrar datos
+	 * @throws SQLException
+	 */
+	public static void mostrar(String nombreTabla, String campoFiltrar) {
+		// variable que almacena la sentencia sql
+		String querySelect = "";
+
+		Connection conexion = null;
+		Statement stmt = null;
+
+		// si la tabla existe
+		if (existenciaTabla(nombreTabla)) {
+			// la query es igual a la sentencia sql más el nombre de la tabla una vez que
+			// sabemos que la tabla existe
+			querySelect = "SELECT * FROM " + nombreTabla;
+			// si quiere filtrar por campo
+			if (!campoFiltrar.equalsIgnoreCase("")) {
+
+				// se añade el where a la sentencia
+				querySelect += " WHERE " + campoFiltrar;
+			}
+		}
+
+		try {
+			// obtiene la conexión a la base de datos
+			conexion = Conexion.obtenerConexion();
+			// crea un objeto Statement para ejecutar consultas SQL
+			stmt = conexion.createStatement();
+
+			// ejecuta la consulta y almacena los resultados en un ResultSet
+			ResultSet rs = stmt.executeQuery(querySelect);
+
+			// obtiene los metadatos del ResultSet para conocer información sobre las
+			// columnas
+			ResultSetMetaData metaData = rs.getMetaData();
+			// obtiene el número total de columnas de la tabla
+			int numColumnas = metaData.getColumnCount();
+
+			// recorre cada fila del resultado
+			while (rs.next()) {
+				// variable para construir la línea completa con todos los valores
+				String linea = "";
+				// recorre cada columna de la fila actual
+				for (int i = 1; i <= numColumnas; i++) {
+					// añade lo que contenga cada columna a la línea
+					linea += rs.getString(i) + " ";
+				}
+				// imprime la línea
+				System.out.println(linea);
+			}
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	/**
+	 * Método el cuál actualiza el campo o campos de una tabla con transacción
+	 * 
+	 * @param nombreTabla  - Nombre de la tabla en donde está el campo a actualizar
+	 * @param nombreCampo  - El nombre del campo que tiene que actualizarse
+	 * @param datoNuevo    - El nuevo dato que tendrá el campo
+	 * @param campoFiltrar - El campo por el que se realizará un filtrado
+	 * @param datoFiltrar  - El dato que tendrá que tener el campo de filtrado para
+	 *                     poder actualizar los campos
+	 * @param conexion     - La conexión para gestionar la transacción
+	 * @return El número de filas afectadas por el update
+	 */
+	public static int update(String nombreTabla, String nombreCampo, String datoNuevo, String campoFiltrar,
+			String datoFiltrar, Connection conexion) {
+		// variable que gestionará si las tablas se crearon o no correctamente
+		int numFilasAfectadas = -1;
+		Statement stmt = null;
+		// variable que almacenará la sentencia sql
+		String sentenciaSQL = "";
+
+		if (existenciaTabla(nombreTabla)) {
+			try {
+				stmt = conexion.createStatement();
+
+				// se añade la sentencia a la variable
+				sentenciaSQL = "UPDATE " + nombreTabla + " SET " + nombreCampo + " = " + datoNuevo;
+				// si el campo por el que filtrar no es una cadena vacía
+				if (!campoFiltrar.equalsIgnoreCase("")) {
+					// se añade el filtrado a la sentencia SQL
+					sentenciaSQL += " WHERE " + campoFiltrar + " = " + datoFiltrar;
+				}
+
+				// se almacenan el numero de filas afectadas
+				numFilasAfectadas = stmt.executeUpdate(sentenciaSQL);
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		// se devuelven el numero de filas afectadas
+		return numFilasAfectadas;
+	}
+
+	/**
+	 * Método que elimina registros de una tabla según un filtro
+	 * 
+	 * @param nombreTabla  - Nombre de la tabla de donde borrar
+	 * @param campoFiltrar - Campo por el que filtrar
+	 * @param datoFiltrar  - Valor del campo a filtrar
+	 * @param conexion     - Conexión para gestionar transacción
+	 * @return Número de filas eliminadas
+	 */
+	public static int delete(String nombreTabla, String campoFiltrar, String datoFiltrar, Connection conexion) {
+		int numFilasAfectadas = -1;
+		Statement stmt = null;
+		String sentenciaSQL = "";
+
+		if (existenciaTabla(nombreTabla)) {
+			try {
+				stmt = conexion.createStatement();
+
+				sentenciaSQL = "DELETE FROM " + nombreTabla;
+
+				if (!campoFiltrar.equalsIgnoreCase("")) {
+					sentenciaSQL += " WHERE " + campoFiltrar + " = " + datoFiltrar;
+				}
+
+				numFilasAfectadas = stmt.executeUpdate(sentenciaSQL);
+
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return numFilasAfectadas;
+	}
+
+	/**
+	 * Método que elimina todas las tablas
+	 * 
+	 * @return true si se eliminaron correctamente, false en caso contrario
+	 */
+	public static boolean eliminarTablas() {
+		boolean exito = false;
+		Connection conexion = null;
+		Statement stmt = null;
+		String sentenciaSQL = "";
+
+		try {
+			conexion = Conexion.obtenerConexion();
+			stmt = conexion.createStatement();
+
+			// eliminar en orden inverso por las foreign keys
+			sentenciaSQL = "DROP TABLE IF EXISTS Compras";
+			stmt.execute(sentenciaSQL);
+
+			sentenciaSQL = "DROP TABLE IF EXISTS Games";
+			stmt.execute(sentenciaSQL);
+
+			sentenciaSQL = "DROP TABLE IF EXISTS Player";
+			stmt.execute(sentenciaSQL);
+
+			exito = true;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return exito;
+	}
+
+	/**
+	 * Método que elimina una tabla específica
+	 * 
+	 * @param nombreTabla - Nombre de la tabla a eliminar
+	 * @return true si se eliminó correctamente, false en caso contrario
+	 */
+	public static boolean eliminarTablaSeparada(String nombreTabla) {
+		boolean exito = false;
+		Connection conexion = null;
+		Statement stmt = null;
+		String sentenciaSQL = "";
+
+		if (existenciaTabla(nombreTabla)) {
+			try {
+				conexion = Conexion.obtenerConexion();
+				stmt = conexion.createStatement();
+
+				sentenciaSQL = "DROP TABLE " + nombreTabla;
+				stmt.execute(sentenciaSQL);
+
+				exito = true;
+
+			} catch (SQLException e) {
+				System.err.println("Error: No se puede eliminar la tabla " + nombreTabla
+						+ " porque tiene relaciones con otras tablas.");
+			}
+		} else {
+			System.err.println("La tabla " + nombreTabla + " no existe.");
+		}
+
+		return exito;
+	}
+
+	/***
+	 * Método que se encarga de comprobar el tipo del campo de una tabla especifico
+	 * para poder realizar un filtrado
+	 * 
+	 * @param nombreTabla - Nombre de la tabla en la que está el campo
+	 * @param nombreCampo - Nombre del campo del que se quiere saber el tipo
+	 * @return el tipo del campo en forma de un numero entero
+	 */
+	public static int obtenerTipoCampo(String nombreTabla, String nombreCampo) {
+		// almacena la sentencia select
+		String querySelect = "SELECT * FROM " + nombreTabla + " LIMIT 1";
+		// almacena el numero de columnas que tiene la tabla
+		int numColumnas;
+		// almacena el tipo del campo en forma de int
+		int tipoColumna = -1;
+
+		Connection conexion;
+		try {
+			conexion = Conexion.obtenerConexion();
+
+			Statement stmt = conexion.createStatement();
+			// se ejecuta la sentencia select
+			ResultSet rs = stmt.executeQuery(querySelect);
+
+			ResultSetMetaData metaData = rs.getMetaData();
+			// se almacenan el numero de las columnas en la variable para poder recorrerla
+			numColumnas = metaData.getColumnCount();
+
+			// se recorren las columnas
+			for (int i = 1; i <= numColumnas; i++) {
+				// si el nombre de la columna es igual al nombre del campo que le llega por
+				// parámetro de entrada
+				if (metaData.getColumnName(i).equalsIgnoreCase(nombreCampo)) {
+					// le asigna el numero de la columna a la variable como un entero
+					tipoColumna = metaData.getColumnType(i);
+				}
+			}
+
+			rs.close();
+			stmt.close();
+			conexion.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		// se devuelve el tipo de la columna
+		return tipoColumna;
+	}
+
+	/**
 	 * Método que sirve para comprobar si una tabla existe o no
 	 * 
 	 * @param nombreTabla = El nombre de la tabla a comprobar
@@ -164,7 +456,7 @@ public class CRUD extends Exception {
 	 * @return
 	 */
 	private static String crearTablaPlayer() {
-		return " (idPlayer INT PRIMARY KEY, Nick VARCHAR(45), password VARCHAR(128), email VARCHAR(100));";
+		return " (idPlayer INT PRIMARY KEY, nick VARCHAR(45), password VARCHAR(128), email VARCHAR(100));";
 	}
 
 	/**
@@ -173,7 +465,7 @@ public class CRUD extends Exception {
 	 * @return
 	 */
 	private static String crearTablaGames() {
-		return "(idGames INT PRIMARY KEY, Nombre VARCHAR(45), tiempoJugador TIME);";
+		return "(idGame INT PRIMARY KEY, nombre VARCHAR(45), tiempoJugador TIME);";
 	}
 
 	/**
@@ -182,6 +474,36 @@ public class CRUD extends Exception {
 	 * @return
 	 */
 	private static String crearTablaCompras() {
-		return "(idCompra INT PRIMARY KEY, idPlayer INT, idGames INT, Cosa VARCHAR(25), Precio DECIMAL(6,2), FechaCompra DATE, FOREIGN KEY (idPlayer) REFERENCES Player(idPlayer), FOREIGN KEY (idGames) REFERENCES Games(idGames));";
+		return "(idCompra INT PRIMARY KEY, idPlayer INT, idGame INT, cosa VARCHAR(25), precio DECIMAL(6,2), fechaCompra DATE, FOREIGN KEY (idPlayer) REFERENCES Player(idPlayer), FOREIGN KEY (idGame) REFERENCES Games(idGame));";
+	}
+
+	/**
+	 * Método estático que sirve para poder insertar datos en una tabla determinada,
+	 * se recorre el array de cadenas que le llega y este se va añadiendo a la query
+	 * (a la vez que el nombre de la tabla), no se comprueba la tabla que es.
+	 * 
+	 * @param nombreTablaInsertar - El nombre de la tabla en donde se van a insertar
+	 *                            los datos
+	 * @param valores             - Un array con los valores que valdrán los campos
+	 * @return La query con la sentencia SQL
+	 */
+	private static String insertarValores(String nombreTablaInsertar, String[] valores) {
+
+		// query que se ejecutara
+		String querySQL = "INSERT INTO ";
+
+		querySQL += nombreTablaInsertar + " VALUES (";
+
+		// recorro el array
+		for (int i = 0; i < valores.length; i++) {
+			// se van añadiendo las posiciones a la variable
+			querySQL += valores[i];
+		}
+
+		// se cierra el paréntesis
+		querySQL += ")";
+
+		// se devuelve la query
+		return querySQL;
 	}
 }
