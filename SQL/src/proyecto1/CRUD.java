@@ -303,9 +303,10 @@ public class CRUD extends Exception {
 	}
 
 	/**
-	 * Método que elimina todas las tablas
+	 * Método que elimina todas las tablas de la BBDD
 	 * 
-	 * @return true si se eliminaron correctamente, false en caso contrario
+	 * @return true si se eliminaron correctamente y false si no se pudieron
+	 *         eliminar
 	 */
 	public static boolean eliminarTablas() {
 		boolean exito = false;
@@ -317,22 +318,21 @@ public class CRUD extends Exception {
 			conexion = Conexion.obtenerConexion();
 			stmt = conexion.createStatement();
 
-			// eliminar en orden inverso por las foreign keys
+			// se van eliminando las tablas empezando por la que tiene claves foraneas
 			sentenciaSQL = "DROP TABLE IF EXISTS Compras";
 			stmt.execute(sentenciaSQL);
-
 			sentenciaSQL = "DROP TABLE IF EXISTS Games";
 			stmt.execute(sentenciaSQL);
-
 			sentenciaSQL = "DROP TABLE IF EXISTS Player";
 			stmt.execute(sentenciaSQL);
-
+			// si todo fue bien hasta aquí siginifica que exito puede ser asignado a true
 			exito = true;
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 
+		// se devuelve el resultado
 		return exito;
 	}
 
@@ -340,7 +340,8 @@ public class CRUD extends Exception {
 	 * Método que elimina una tabla específica
 	 * 
 	 * @param nombreTabla - Nombre de la tabla a eliminar
-	 * @return true si se eliminó correctamente, false en caso contrario
+	 * @return true si se eliminaron correctamente y false si no se pudieron
+	 *         eliminar
 	 */
 	public static boolean eliminarTablaSeparada(String nombreTabla) {
 		boolean exito = false;
@@ -348,22 +349,24 @@ public class CRUD extends Exception {
 		Statement stmt = null;
 		String sentenciaSQL = "";
 
+		// si la tabla que se introduce por parámetros existe
 		if (existenciaTabla(nombreTabla)) {
 			try {
 				conexion = Conexion.obtenerConexion();
 				stmt = conexion.createStatement();
 
+				// se iguala la variable a la sentencia sql
 				sentenciaSQL = "DROP TABLE " + nombreTabla;
+				// se ejecuta
 				stmt.execute(sentenciaSQL);
 
+				// si llega hasta aquí significa que todo fue bien
 				exito = true;
 
 			} catch (SQLException e) {
 				System.err.println("Error: No se puede eliminar la tabla " + nombreTabla
 						+ " porque tiene relaciones con otras tablas.");
 			}
-		} else {
-			System.err.println("La tabla " + nombreTabla + " no existe.");
 		}
 
 		return exito;
@@ -425,29 +428,16 @@ public class CRUD extends Exception {
 	 * @return true si la tabla existe y false si la tabla no existe
 	 */
 	private static boolean existenciaTabla(String nombreTabla) {
-
-		// variable que almacenará si la tabla existe o no
 		boolean existe = false;
+		String sql = "SELECT 1 FROM " + nombreTabla + " LIMIT 1";
 
-		Connection conexion;
-		try {
-			conexion = Conexion.obtenerConexion();
-			// Desde la conexión, obtienes el objeto DatabaseMetaData
-			DatabaseMetaData metaData = conexion.getMetaData();
-			ResultSet tablas = metaData.getTables(null, null, nombreTabla, new String[] { "TABLE" });
-
-			// si la tabla que se le pasa por parámetros existe entonces devuelve true
-			if (tablas.next()) {
-				existe = true;
-			}
-
-			tablas.close();
-
+		try (Connection conexion = Conexion.obtenerConexion(); java.sql.Statement stmt = conexion.createStatement()) {
+			stmt.executeQuery(sql);
+			existe = true;
 		} catch (SQLException e) {
+			// Si lanza SQLException, la tabla no existe
 		}
-
 		return existe;
-
 	}
 
 	/**
@@ -496,8 +486,22 @@ public class CRUD extends Exception {
 
 		// recorro el array
 		for (int i = 0; i < valores.length; i++) {
-			// se van añadiendo las posiciones a la variable
-			querySQL += valores[i];
+
+			// si el valor NO es un número
+			if (esNumero(valores[i])) {
+
+				// si ES un número se añade a la sentencia directamente
+				querySQL += valores[i];
+				// si NO es un número se le ponen comillas
+			} else {
+				// se le colocan comillas y se añade a la sentencia
+				querySQL += "'" + valores[i] + "'";
+			}
+
+			// si después del valor actual HAY otro valor más se coloca una coma
+			if (i < valores.length - 1) {
+				querySQL += ", ";
+			}
 		}
 
 		// se cierra el paréntesis
@@ -506,4 +510,16 @@ public class CRUD extends Exception {
 		// se devuelve la query
 		return querySQL;
 	}
+
+	private static boolean esNumero(String texto) {
+		if (texto == null || texto.isEmpty())
+			return false;
+		try {
+			Double.parseDouble(texto); // o Integer.parseInt si solo enteros
+			return true;
+		} catch (NumberFormatException e) {
+			return false;
+		}
+	}
+
 }
