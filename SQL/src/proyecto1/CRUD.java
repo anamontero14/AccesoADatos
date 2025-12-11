@@ -1,18 +1,12 @@
 package proyecto1;
 
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class CRUD extends Exception {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+public class CRUD {
 
 	/**
 	 * Método conectar el cuál establecerá una conexión entre el entorno y la BBDD
@@ -101,13 +95,13 @@ public class CRUD extends Exception {
 				sentenciaSQL = "CREATE TABLE " + nombreTabla + crearTablaPlayer();
 			} else if (nombreTabla.equalsIgnoreCase("Games")) {
 				// sentencia sql que se almacena en la variable
-				sentenciaSQL = "CREATE TABLE " + nombreTabla + crearTablaPlayer();
+				sentenciaSQL = "CREATE TABLE " + nombreTabla + crearTablaGames();
 			} else if (nombreTabla.equalsIgnoreCase("Compras")) {
 
 				// si la tabla esa existe
 				if (existenciaTabla("Player") && existenciaTabla("Games")) {
 					// Paso 3. Definimos la sentencia de crear una nueva base de datos
-					sentenciaSQL = "CREATE TABLE " + nombreTabla + crearTablaPlayer();
+					sentenciaSQL = "CREATE TABLE " + nombreTabla + crearTablaCompras();
 				}
 			}
 
@@ -118,6 +112,7 @@ public class CRUD extends Exception {
 			exito = true;
 
 		} catch (SQLException se) {
+			System.err.println("Debe crear primero Player y Games.");
 			// Gestionamos los posibles errores que puedan surgir durante la ejecucion de la
 			// insercion
 			se.printStackTrace();
@@ -189,38 +184,38 @@ public class CRUD extends Exception {
 				// se añade el where a la sentencia
 				querySelect += " WHERE " + campoFiltrar;
 			}
-		}
 
-		try {
-			// obtiene la conexión a la base de datos
-			conexion = Conexion.obtenerConexion();
-			// crea un objeto Statement para ejecutar consultas SQL
-			stmt = conexion.createStatement();
+			try {
+				// obtiene la conexión a la base de datos
+				conexion = Conexion.obtenerConexion();
+				// crea un objeto Statement para ejecutar consultas SQL
+				stmt = conexion.createStatement();
 
-			// ejecuta la consulta y almacena los resultados en un ResultSet
-			ResultSet rs = stmt.executeQuery(querySelect);
+				// ejecuta la consulta y almacena los resultados en un ResultSet
+				ResultSet rs = stmt.executeQuery(querySelect);
 
-			// obtiene los metadatos del ResultSet para conocer información sobre las
-			// columnas
-			ResultSetMetaData metaData = rs.getMetaData();
-			// obtiene el número total de columnas de la tabla
-			int numColumnas = metaData.getColumnCount();
+				// obtiene los metadatos del ResultSet para conocer información sobre las
+				// columnas
+				ResultSetMetaData metaData = rs.getMetaData();
+				// obtiene el número total de columnas de la tabla
+				int numColumnas = metaData.getColumnCount();
 
-			// recorre cada fila del resultado
-			while (rs.next()) {
-				// variable para construir la línea completa con todos los valores
-				String linea = "";
-				// recorre cada columna de la fila actual
-				for (int i = 1; i <= numColumnas; i++) {
-					// añade lo que contenga cada columna a la línea
-					linea += rs.getString(i) + " ";
+				// recorre cada fila del resultado
+				while (rs.next()) {
+					// variable para construir la línea completa con todos los valores
+					String linea = "";
+					// recorre cada columna de la fila actual
+					for (int i = 1; i <= numColumnas; i++) {
+						// añade lo que contenga cada columna a la línea
+						linea += rs.getString(i) + " ";
+					}
+					// imprime la línea
+					System.out.println(linea);
 				}
-				// imprime la línea
-				System.out.println(linea);
-			}
 
-		} catch (SQLException e) {
-			e.printStackTrace();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
 
 	}
@@ -239,10 +234,8 @@ public class CRUD extends Exception {
 	 */
 	public static int update(String nombreTabla, String nombreCampo, String datoNuevo, String campoFiltrar,
 			String datoFiltrar, Connection conexion) {
-		// variable que gestionará si las tablas se crearon o no correctamente
 		int numFilasAfectadas = -1;
 		Statement stmt = null;
-		// variable que almacenará la sentencia sql
 		String sentenciaSQL = "";
 
 		if (existenciaTabla(nombreTabla)) {
@@ -250,11 +243,25 @@ public class CRUD extends Exception {
 				stmt = conexion.createStatement();
 
 				// se añade la sentencia a la variable
-				sentenciaSQL = "UPDATE " + nombreTabla + " SET " + nombreCampo + " = " + datoNuevo;
+				sentenciaSQL = "UPDATE " + nombreTabla + " SET " + nombreCampo + " = ";
+
+				// comprueba si el campo necesita comillas según su tipo
+				if (campoNecesitaComillas(nombreTabla, nombreCampo)) {
+					sentenciaSQL += "'" + datoNuevo + "'";
+				} else {
+					sentenciaSQL += datoNuevo;
+				}
+
 				// si el campo por el que filtrar no es una cadena vacía
 				if (!campoFiltrar.equalsIgnoreCase("")) {
-					// se añade el filtrado a la sentencia SQL
-					sentenciaSQL += " WHERE " + campoFiltrar + " = " + datoFiltrar;
+					sentenciaSQL += " WHERE " + campoFiltrar + " = ";
+
+					// comprueba si el campo de filtrado necesita comillas
+					if (campoNecesitaComillas(nombreTabla, campoFiltrar)) {
+						sentenciaSQL += "'" + datoFiltrar + "'";
+					} else {
+						sentenciaSQL += datoFiltrar;
+					}
 				}
 
 				// se almacenan el numero de filas afectadas
@@ -264,7 +271,6 @@ public class CRUD extends Exception {
 			}
 		}
 
-		// se devuelven el numero de filas afectadas
 		return numFilasAfectadas;
 	}
 
@@ -278,27 +284,52 @@ public class CRUD extends Exception {
 	 * @return Número de filas eliminadas
 	 */
 	public static int delete(String nombreTabla, String campoFiltrar, String datoFiltrar, Connection conexion) {
+		// varibale que almacenará el número de filas que han sido afectadas, está
+		// inicializada a -1 primero para controlar el caso en el que se actualicen 0
+		// filas pero que no sea un error
 		int numFilasAfectadas = -1;
+		// se crea el objeto de statement
 		Statement stmt = null;
+		// variable que almacena la sentencia sql
 		String sentenciaSQL = "";
 
+		// si la tabla que se quiere eliminar existe
 		if (existenciaTabla(nombreTabla)) {
+			// se abre un try catch para gestionar las excepciones
 			try {
+				// el statement se iguala a la conexion
 				stmt = conexion.createStatement();
 
+				// se agrega la sentencia a la tabla
 				sentenciaSQL = "DELETE FROM " + nombreTabla;
 
+				// en el caso de que quiera eliminar un dato específico de una tabla se
+				// comprueba que el filtrado por el campo no esté vacío
 				if (!campoFiltrar.equalsIgnoreCase("")) {
-					sentenciaSQL += " WHERE " + campoFiltrar + " = " + datoFiltrar;
+					// si no está vacío significa que quiere hacer un filtrado entonces se le agrega
+					// a la sentencia sql
+					sentenciaSQL += " WHERE " + campoFiltrar + " = ";
+
+					// comprueba si el campo necesita comillas según su tipo
+					if (campoNecesitaComillas(nombreTabla, campoFiltrar)) {
+						// le agrega las comillas
+						sentenciaSQL += "'" + datoFiltrar + "'";
+					} else {
+						// y si no las necesita agrega directamente el campo a filtrar
+						sentenciaSQL += datoFiltrar;
+					}
 				}
 
+				// finalmente la variable almacena el resultado de la query
 				numFilasAfectadas = stmt.executeUpdate(sentenciaSQL);
 
 			} catch (SQLException e) {
+				System.err.println("No se eliminó");
 				e.printStackTrace();
 			}
 		}
 
+		// y se devuelve el número de líneas
 		return numFilasAfectadas;
 	}
 
@@ -455,7 +486,7 @@ public class CRUD extends Exception {
 	 * @return
 	 */
 	private static String crearTablaGames() {
-		return "(idGame INT PRIMARY KEY, nombre VARCHAR(45), tiempoJugador TIME);";
+		return "(idGame INT PRIMARY KEY, nombre VARCHAR(45), tiempoJugado TIME);";
 	}
 
 	/**
@@ -478,7 +509,6 @@ public class CRUD extends Exception {
 	 * @return La query con la sentencia SQL
 	 */
 	private static String insertarValores(String nombreTablaInsertar, String[] valores) {
-
 		// query que se ejecutara
 		String querySQL = "INSERT INTO ";
 
@@ -489,7 +519,6 @@ public class CRUD extends Exception {
 
 			// si el valor NO es un número
 			if (esNumero(valores[i])) {
-
 				// si ES un número se añade a la sentencia directamente
 				querySQL += valores[i];
 				// si NO es un número se le ponen comillas
@@ -511,6 +540,13 @@ public class CRUD extends Exception {
 		return querySQL;
 	}
 
+	/**
+	 * Método auxiliar que sirve para determinar si una cadena de texto es o no un
+	 * número
+	 * 
+	 * @param texto - Parámetro de entrada que es un string
+	 * @return True si es un número y false si no lo es
+	 */
 	private static boolean esNumero(String texto) {
 		if (texto == null || texto.isEmpty())
 			return false;
@@ -520,6 +556,31 @@ public class CRUD extends Exception {
 		} catch (NumberFormatException e) {
 			return false;
 		}
+	}
+
+	/**
+	 * Método auxiliar que determina si un campo necesita comillas según su tipo
+	 * 
+	 * @param nombreTabla - Nombre de la tabla
+	 * @param nombreCampo - Nombre del campo
+	 * @return true si necesita comillas (texto/fecha), false si no (numérico)
+	 */
+	private static boolean campoNecesitaComillas(String nombreTabla, String nombreCampo) {
+
+		// campo auxiliar que almacena el estado del campo de si necesita comillas o no
+		boolean necesitaComillas = true;
+
+		int tipoCampo = obtenerTipoCampo(nombreTabla, nombreCampo);
+
+		// los tipos numéricos no necesitan comillas pero las fechas, el tiempo y las
+		// cadenas sí
+		if (tipoCampo == 3 || tipoCampo == 4 || tipoCampo == -5 || tipoCampo == 6 || tipoCampo == 7 || tipoCampo == 8) {
+			// si es numérico no necesitará comillas
+			necesitaComillas = false;
+		}
+
+		// devuelve el booleano
+		return necesitaComillas;
 	}
 
 }

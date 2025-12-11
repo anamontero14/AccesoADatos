@@ -167,7 +167,7 @@ public class Main {
 						filtradoTablaMostrar = campoTabla + " = " + valorCampoTabla;
 					} else if (tipoCampo == 12) {
 						// se añade la sentencia a la variable
-						filtradoTablaMostrar = campoTabla + " = %" + valorCampoTabla + "%";
+						filtradoTablaMostrar = campoTabla + " LIKE '%" + valorCampoTabla + "%'";
 					} else if (tipoCampo == 91 || tipoCampo == 92) {
 						// repetirá la pregunta mientras que el usuario no introduzca nada
 						do {
@@ -535,7 +535,7 @@ public class Main {
 		idGame = leer.nextLine();
 		System.out.print("Introduzca el nombre del juego: ");
 		nombre = leer.nextLine();
-		System.out.print("Introduzca la tiempo jugado del juego: ");
+		System.out.print("Introduzca la tiempo jugado del juego (HH:MM:SS): ");
 		tiempoJugado = leer.nextLine();
 
 		// se insertan las variables en un array
@@ -567,9 +567,9 @@ public class Main {
 		idGame = leer.nextLine();
 		System.out.print("Introduce la cosa: ");
 		cosa = leer.nextLine();
-		System.out.print("Introduce el importe de la compra: ");
+		System.out.print("Introduce el importe de la compra (0.0): ");
 		precio = leer.nextLine();
-		System.out.print("Introduce la fecha de la compra: ");
+		System.out.print("Introduce la fecha de la compra (YYYY-MM-DD): ");
 		fechaCompra = leer.nextLine();
 
 		valores[0] = idCompra;
@@ -590,7 +590,7 @@ public class Main {
 			System.out.println("password");
 			System.out.println("email");
 		} else if (nombreTabla.equalsIgnoreCase("Games")) {
-			System.out.println("idGames");
+			System.out.println("idGame");
 			System.out.println("nombre");
 			System.out.println("tiempoJugado");
 		} else if (nombreTabla.equalsIgnoreCase("Compras")) {
