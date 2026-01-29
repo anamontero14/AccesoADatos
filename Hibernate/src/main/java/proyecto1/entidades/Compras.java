@@ -1,4 +1,6 @@
 package proyecto1.entidades;
+import java.io.Serializable;
+import java.sql.Date;
 
 import jakarta.persistence.*;
 
@@ -8,7 +10,12 @@ import jakarta.persistence.*;
  */
 @Entity
 @Table(name = "Compras")
-public class Compras {
+public class Compras implements Serializable {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 
 	/**
 	 * identificador único de la compra (clave primaria) se genera automáticamente
@@ -51,25 +58,21 @@ public class Compras {
 	 * fecha de la compra se guarda como texto porque así lo pides
 	 */
 	@Column(name = "fechaCompra", nullable = false, length = 20)
-	private String fechaCompra;
-
-	/**
-	 * constructor vacío requerido por Hibernate
-	 */
-	public Compras() {
-	}
-
+	private Date fechaCompra;
+	
 	/**
 	 * constructor con parámetros para crear una nueva compra el id no se incluye
 	 * porque es autogenerado
 	 */
-	public Compras(Player player, Game game, String cosa, double precio, String fechaCompra) {
+	public Compras(Player player, Game game, String cosa, double precio, Date fechaCompra2) {
 		this.player = player;
 		this.game = game;
 		this.cosa = cosa;
 		this.precio = precio;
-		this.fechaCompra = fechaCompra;
+		this.fechaCompra = fechaCompra2;
 	}
+	
+	public Compras() {};
 
 	/**
 	 * método getter del id de la compra
@@ -142,23 +145,23 @@ public class Compras {
 	/**
 	 * método setter del precio
 	 */
-	public void setPrecio(double precio) {
-		this.precio = precio;
+	public void setPrecio(double precio2) {
+		this.precio = precio2;
 	}
 
 	/**
 	 * método getter de la fecha de compra
 	 */
-	public String getFechaCompra() {
-		String fecha = fechaCompra;
+	public Date getFechaCompra() {
+		Date fecha = fechaCompra;
 		return fecha;
 	}
 
 	/**
 	 * método setter de la fecha de compra
 	 */
-	public void setFechaCompra(String fechaCompra) {
-		this.fechaCompra = fechaCompra;
+	public void setFechaCompra(Date fecha) {
+		this.fechaCompra = fecha;
 	}
 
 	/**

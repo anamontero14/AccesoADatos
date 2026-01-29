@@ -1,6 +1,8 @@
 package proyecto1.entidades;
 
 import jakarta.persistence.*;
+
+import java.io.Serializable;
 import java.sql.Time;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +13,12 @@ import java.util.List;
  */
 @Entity
 @Table(name = "Games")
-public class Game {
+public class Game implements Serializable {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 
 	// identificador único del juego (clave primaria)
 	// se genera automáticamente mediante autoincremento
