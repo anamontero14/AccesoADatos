@@ -1,6 +1,7 @@
-package com.springboot.ejercicio;
+package com.springboot.ejercicio.controller;
 
 import com.springboot.ejercicio.dto.AlumnoDTO;
+import com.springboot.ejercicio.entities.Alumno;
 import com.springboot.ejercicio.service.AlumnoService;
 
 import io.swagger.v3.oas.annotations.Operation;

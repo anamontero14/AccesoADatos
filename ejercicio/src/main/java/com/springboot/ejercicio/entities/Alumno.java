@@ -1,4 +1,4 @@
-package com.springboot.ejercicio;
+package com.springboot.ejercicio.entities;
 
 import java.time.LocalDate;
 

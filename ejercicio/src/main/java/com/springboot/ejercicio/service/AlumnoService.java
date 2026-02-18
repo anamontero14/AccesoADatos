@@ -3,8 +3,8 @@ package com.springboot.ejercicio.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.springboot.ejercicio.Alumno;
-import com.springboot.ejercicio.AlumnoRepository;
+import com.springboot.ejercicio.entities.Alumno;
+import com.springboot.ejercicio.repositories.AlumnoRepository;
 
 import java.util.List;
 import java.util.Optional;
